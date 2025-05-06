@@ -2,7 +2,7 @@
 
 namespace RequestValidator\Validator;
 
-abstract class AbstractValidator
+abstract class AbstractValidator implements ValidatorInterface
 {
     protected string $field = '';
     protected $value;
@@ -10,7 +10,7 @@ abstract class AbstractValidator
     protected array $messageKeys = [];
     protected string $message = '';
 
-    public function __construct(string $fieldName, $value, $args = [], string $message = null)
+    public function __construct(string $fieldName, $value, array $args = [], string $message = null)
     {
         $this->field = $fieldName;
         $this->value = $value;
@@ -18,22 +18,21 @@ abstract class AbstractValidator
         $this->message = $message ?? $this->message;
 
         $this->messageKeys = [
-            ":value" => $this->value,
+            ":value" => $this->value ?? 'null',
             ":field" => $this->field
         ];
     }
 
     public function validate()
     {
-        if (!$this->rule())
-            return $this->messageError();
-        return true;
+        return $this->rule() ?: $this->messageError();
     }
 
     private function messageError(): string
     {
+        $message = $this->message; // Инициализация перед циклом
         foreach ($this->messageKeys as $key => $value) {
-            $message = str_replace($key, (string)$value, $this->message);
+            $message = str_replace($key, (string)$value, $message);
         }
         return $message;
     }

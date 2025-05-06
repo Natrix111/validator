@@ -6,15 +6,10 @@ use RequestValidator\Exceptions\ValidationException;
 
 class Validator
 {
-    //Разрешенные валидаторы
     private array $validators = [];
-    //Итоговые ошибки
     private array $errors = [];
-    //Проверяемые поля
     private array $fields = [];
-    //Массив правил
     private array $rules = [];
-    //Кастомные сообщения
     private array $messages = [];
 
     public function __construct(array $fields, array $rules, array $messages = [])
@@ -35,26 +30,38 @@ class Validator
 
     private function validateField(string $fieldName, array $fieldValidators): void
     {
-        foreach ($fieldValidators as $validatorName) {
-            $tmp = explode(':', $validatorName);
-            [$validatorName, $args] = count($tmp) > 1 ? $tmp : [$validatorName, null];
-            $args = isset($args) ? explode(',', $args) : [];
+        if (!array_key_exists($fieldName, $this->fields)) {
+            $this->fields[$fieldName] = null;
+        }
 
-            //Соотносим имя валидатора с классом в массиве разрешенных валидаторов
-            $validatorClass = $this->validators[$validatorName];
-            if (!class_exists($validatorClass)) {
+        foreach ($fieldValidators as $validatorName) {
+            $validatorConfig = $this->parseValidator($validatorName);
+            $validatorClass = $this->validators[$validatorConfig['name']] ?? null;
+
+            if (!$validatorClass || !class_exists($validatorClass)) {
                 continue;
             }
+
+            $message = $this->getValidatorMessage($fieldName, $validatorConfig['name']);
+
             $validator = new $validatorClass(
                 $fieldName,
-                $this->fields[$fieldName],
-                $args,
-                $this->messages[$validatorName]);
+                $this->fields[$fieldName] ?? null,
+                $validatorConfig['args'],
+                $message
+            );
 
-            if (!$validator->rule()) {
-                $this->errors[$fieldName][] = $validator->validate();
+            if ($error = $validator->validate()) {
+                $this->errors[$fieldName][] = $error;
             }
         }
+    }
+
+    private function getValidatorMessage(string $field, string $rule): ?string
+    {
+        return $this->messages["{$field}.{$rule}"]
+            ?? $this->messages[$rule]
+            ?? null;
     }
 
     public function errors(): array
