@@ -46,18 +46,18 @@ class Validator
 
             $validator = new $validatorClass(
                 $fieldName,
-                $this->fields[$fieldName] ?? null,
+                $this->fields[$fieldName],
                 $validatorConfig['args'],
                 $message
             );
 
-            if ($error = $validator->validate()) {
-                $this->errors[$fieldName][] = $error;
+            $result = $validator->validate();
+            if ($result !== true) {
+                $this->errors[$fieldName][] = $result;
             }
         }
     }
 
-    // Добавляем недостающий метод
     private function parseValidator(string $validator): array
     {
         $parts = explode(':', $validator, 2);
