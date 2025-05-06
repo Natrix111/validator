@@ -57,6 +57,16 @@ class Validator
         }
     }
 
+    // Добавляем недостающий метод
+    private function parseValidator(string $validator): array
+    {
+        $parts = explode(':', $validator, 2);
+        return [
+            'name' => $parts[0],
+            'args' => isset($parts[1]) ? explode(',', $parts[1]) : []
+        ];
+    }
+
     private function getValidatorMessage(string $field, string $rule): ?string
     {
         return $this->messages["{$field}.{$rule}"]
@@ -71,8 +81,9 @@ class Validator
 
     public function fails(): bool
     {
-        return (bool)count($this->errors);
+        return !empty($this->errors);
     }
+
     public function validateOrFail(): void
     {
         if ($this->fails()) {
